@@ -1,0 +1,30 @@
+# Credenciais e tokens Google
+credentials.json
+token.json
+*.pickle
+
+# Histórico local (dados sensíveis de links)
+historico.json
+
+# Ambiente virtual Python
+venv/
+.venv/
+env/
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+.ipynb_checkpoints/
+
+# Provas (não versionar seus jsons de prova de alunos)
+*.json
+!credentials.example.json
+
+# Playbooks
+skills/
