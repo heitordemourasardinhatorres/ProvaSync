@@ -6,16 +6,30 @@ from forms_api import criar_form_google
 import historico
 
 st.set_page_config(page_title="ProvaSync", page_icon="📝", layout="wide")
-st.title("ProvaSync - Sincronizador de Provas (via JSON)")
+st.title("ProvaSync - Sincronizador de Provas em Pdf para Um formulario")
+st.write("Este aplicativo permite que você faça upload de um arquivo JSON com as questões da prova e gere um formulário no Google Forms com as questões mapeadas.")
 
 tab_nova, tab_historico = st.tabs(["Nova Prova", "Histórico"])
 
 with tab_nova:
     st.header("Faça upload do arquivo JSON com as questões da prova")
     
-    # Novo Input restrito a JSON
-    arquivo_json = st.file_uploader("Selecione um arquivo .json", type=["json"])
-    tipo_prova = st.radio("Esta prova é Objetiva ou Discursiva?", ["Objetiva", "Discursiva"])
+    # Seleção do método de entrada
+    metodo_input = st.radio("Como deseja enviar o JSON?", ["Upload de Arquivo", "Colar Texto"], horizontal=True)
+    
+    arquivo_json = None
+    texto_json = ""
+    json_nome_input = "Prova Colada Manualmente"
+    
+    if metodo_input == "Upload de Arquivo":
+        arquivo_json = st.file_uploader("Selecione um arquivo .json", type=["json"])
+        nome_sugerido = os.path.splitext(os.path.basename(arquivo_json.name))[0] if arquivo_json else "Prova do Arquivo"
+    else:
+        texto_json = st.text_area("Cole a estrutura JSON bruta aqui limitando pelas suas chaves:", height=250)
+        nome_sugerido = "Prova Colada Manualmente"
+
+    json_nome_input = st.text_input("Qual o nome desta prova? (Para o Histórico e título):", value=nome_sugerido)
+    tipo_prova = st.radio("Esta prova é Objetiva ou Discursiva?", ["Objetiva", "Discursiva"], horizontal=True)
     
     # Controle de estado
     if "questoes_detectadas" not in st.session_state:
@@ -23,25 +37,34 @@ with tab_nova:
         st.session_state.json_nome = ""
         st.session_state.tipo_atual = ""
         
-    if st.button("Processar Arquivo JSON"):
-        if arquivo_json is not None:
+    if st.button("Processar JSON", type="primary"):
+        conteudo = ""
+        nome_prova = json_nome_input
+        
+        if metodo_input == "Upload de Arquivo" and arquivo_json is not None:
+            conteudo = arquivo_json.getvalue().decode("utf-8")
+        elif metodo_input == "Colar Texto" and texto_json.strip():
+            conteudo = texto_json.strip()
+            
+        if conteudo:
             # Armazena estado pro formulário e histórico
-            st.session_state.json_nome = os.path.splitext(arquivo_json.name)[0]
+            st.session_state.json_nome = nome_prova
             st.session_state.tipo_atual = tipo_prova
             try:
-                # Decodificando texto json na memória e enviando para extractor
-                conteudo = arquivo_json.getvalue().decode("utf-8")
-                
+                # Verificação de segurança (Limite de 2MB)
+                if len(conteudo.encode('utf-8')) > 2 * 1024 * 1024:
+                    raise ValueError("Falha de Segurança: O arquivo ou texto inserido é excessivamente grande (Lim. 2 MB).")
+                    
                 with st.spinner("Classificando e mapeando array do arquivo JSON..."):
                     questoes = parse_json_questoes(conteudo, tipo_prova)
                 
-                st.success(f"{len(questoes)} questões importadas com sucesso do JSON!")
+                st.success(f"{len(questoes)} questões importadas com sucesso!")
                 st.session_state.questoes_detectadas = questoes
             except Exception as e:
                 st.error(str(e))
                 st.session_state.questoes_detectadas = None
         else:
-            st.warning("Por favor, selecione e faça upload de um arquivo contendo JSON válido na área acima primeiro.")
+            st.warning("Por favor, selecione e faça upload de um arquivo ou cole um JSON válido na área acima primeiro.")
 
     # Área de visualização em tabela interativa Streamlit.
     if st.session_state.questoes_detectadas is not None:
@@ -55,7 +78,8 @@ with tab_nova:
             num_rows="dynamic",
             column_config={
                 "id": st.column_config.TextColumn("Identificador (ex: 1, 1a)"),
-                "resumo": st.column_config.TextColumn("Resumo do Enunciado")
+                "materia": st.column_config.TextColumn("Matéria"),
+                "submateria": st.column_config.TextColumn("Submatéria")
             },
             key="editor_questoes_frontend",
             width="stretch"

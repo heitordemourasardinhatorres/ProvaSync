@@ -1,4 +1,5 @@
 import json
+import html
 
 def parse_json_questoes(conteudo_json, tipo_prova):
     """
@@ -23,29 +24,23 @@ def parse_json_questoes(conteudo_json, tipo_prova):
 
     for idx, item in enumerate(dados):
         numero = item.get("numero do ex")
-        enunciado = item.get("enunciado")
-        
         if numero is None:
             raise ValueError(f"Campo 'numero do ex' ausente no item {idx + 1}.")
-        if enunciado is None:
-            raise ValueError(f"Campo 'enunciado' ausente na questão {numero}.")
+
+        materia_raw = str(item.get("materia", ""))[:500]
+        materia = html.escape(materia_raw)
+        
+        submateria_raw = str(item.get("submateria", ""))[:500]
+        submateria_base = html.escape(submateria_raw)
 
         if tipo_prova_upper == "OBJETIVA":
-            # Para objetivas, é obrigatório ter o campo "alternativas" mas elas não vão pro form individual de CHECKBOX (dúvidas)
-            if "alternativas" not in item:
-                raise ValueError(f"Questão {numero} está sem alternativas. Verifique o JSON.")
-            
-            # Pega até 2 linhas iniciais do enunciado
-            enunciado_linhas = str(enunciado).strip().split('\n')
-            resumo = " ".join(enunciado_linhas[:2])
-            
             questoes_formatadas.append({
                 "id": str(numero),
-                "resumo": resumo
+                "materia": materia,
+                "submateria": submateria_base
             })
             
         elif tipo_prova_upper == "DISCURSIVA":
-            # Para discursivas, é obrigatório ter o campo "questoes" contendo as letras (subitens)
             if "questoes" not in item:
                 raise ValueError(f"Questão {numero} está sem subitens. Verifique o JSON.")
                 
@@ -57,13 +52,13 @@ def parse_json_questoes(conteudo_json, tipo_prova):
                 chave_min = str(chave).lower()
                 id_subitem = f"{numero}{chave_min}"
                 
-                # Pega até 2 linhas iniciais do valor do subitem (como indicado na especificação)
-                subitem_linhas = str(valor_subitem).strip().split('\n')
-                resumo = " ".join(subitem_linhas[:2])
+                submateria_raw = str(valor_subitem).strip()[:500]
+                submateria_especifica = html.escape(submateria_raw)
                 
                 questoes_formatadas.append({
                     "id": id_subitem,
-                    "resumo": resumo
+                    "materia": materia,
+                    "submateria": submateria_especifica
                 })
 
     return questoes_formatadas

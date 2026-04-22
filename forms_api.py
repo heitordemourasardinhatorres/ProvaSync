@@ -10,32 +10,37 @@ SCOPES = [
     'https://www.googleapis.com/auth/drive'
 ]
 
+# Paths hardcoded garantindo proteção contra path traversal em imports ou execução de outro diretório
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CREDENTIALS_PATH = os.path.join(BASE_DIR, 'credentials.json')
+TOKEN_PATH = os.path.join(BASE_DIR, 'token.json')
+
 def get_credentials():
     """
     Obtém, atualiza ou cria novas credenciais OAuth2 do Google para os escopos definidos.
     Salva localmente no token.json para evitar re-autenticação.
     """
     creds = None
-    # Verifica o armazenamento de sessão local
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    # Verifica o armazenamento de sessão local seguro
+    if os.path.exists(TOKEN_PATH):
+        creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
         
     # Se não há credenciais válidas e ativas
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            if not os.path.exists('credentials.json'):
+            if not os.path.exists(CREDENTIALS_PATH):
                 raise FileNotFoundError(
-                    "O arquivo credentials.json não foi encontrado. "
+                    f"O arquivo {CREDENTIALS_PATH} não foi encontrado. "
                     "Renomeie o 'credentials.example.json' fornecido, inclua as chaves do Google Cloud Console e tente de novo."
                 )
             
             # Abre porta fixa localhost para bater com a URI do Google Cloud Console
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_PATH, SCOPES)
             creds = flow.run_local_server(port=8080)
             
-        with open('token.json', 'w', encoding='utf-8') as token:
+        with open(TOKEN_PATH, 'w', encoding='utf-8') as token:
             token.write(creds.to_json())
             
     return creds
@@ -52,6 +57,9 @@ def criar_form_google(titulo, questoes, tipo):
     Returns:
         tuple[str, str]: form_id e responder_uri(link do form)
     """
+    if len(questoes) > 150:
+        raise ValueError("Falha de Segurança: O sistema bloqueou o envio pois excede o limite de 150 questões simultâneas, prevenindo abuso da API do Google.")
+
     creds = get_credentials()
     forms_service = build('forms', 'v1', credentials=creds)
 
@@ -71,7 +79,8 @@ def criar_form_google(titulo, questoes, tipo):
     options = []
     for q in questoes:
         prefixo = f"Questão {q['id']}"
-        label = f"{prefixo} — {q['resumo']}"
+        materia_texto = f" ({q.get('materia')})" if q.get('materia') else ""
+        label = f"{prefixo}{materia_texto} — {q.get('submateria', '')}"
         options.append({"value": label})
 
     # Objeto de Update para adicionar a Descrição e a Pergunta de Checkbox
