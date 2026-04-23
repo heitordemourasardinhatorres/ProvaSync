@@ -4,6 +4,7 @@ token.json
 *.pickle
 
 # Histórico local (dados sensíveis de links)
+data/
 historico.json
 
 # Ambiente virtual Python
@@ -13,13 +14,16 @@ env/
 
 # Cache Python
 __pycache__/
+.pytest_cache/
 *.pyc
 *.pyo
 *.pyd
 
-# Arquivos de sistema
+# Arquivos de sistema e IDE
 .DS_Store
 Thumbs.db
+.vscode/
+.VSCodeCounter/
 .ipynb_checkpoints/
 
 # Provas (não versionar seus jsons de prova de alunos)

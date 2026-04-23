@@ -3,6 +3,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from src.exceptions import LimiteExcedidoError
 
 # Escopos do Google Forms e Drive requeridos para editar formulários.
 SCOPES = [
@@ -59,7 +60,7 @@ def criar_form_google(titulo, questoes, tipo):
         tuple[str, str]: form_id e responder_uri(link do form)
     """
     if len(questoes) > 150:
-        raise ValueError("Falha de Segurança: O sistema bloqueou o envio pois excede o limite de 150 questões simultâneas, prevenindo abuso da API do Google.")
+        raise LimiteExcedidoError("Falha de Segurança: O sistema bloqueou o envio pois excede o limite de 150 questões simultâneas, prevenindo abuso da API do Google.")
 
     creds = get_credentials()
     forms_service = build('forms', 'v1', credentials=creds)

@@ -4,6 +4,7 @@ from datetime import datetime
 from src.extractor import parse_json_questoes
 from src.forms_api import criar_form_google
 import src.historico as historico
+from src.exceptions import ProvaSyncError, JSONInvalidoError, LimiteExcedidoError
 
 st.set_page_config(page_title="ProvaSync", page_icon="📝", layout="wide")
 st.title("ProvaSync - Sincronizador de Provas (via JSON)")
@@ -53,15 +54,20 @@ with tab_nova:
             try:
                 # Verificação de segurança (Limite de 2MB)
                 if len(conteudo.encode('utf-8')) > 2 * 1024 * 1024:
-                    raise ValueError("Falha de Segurança: O arquivo ou texto inserido é excessivamente grande (Lim. 2 MB).")
+                    raise LimiteExcedidoError("O arquivo ou texto inserido é excessivamente grande (Lim. 2 MB).")
                     
                 with st.spinner("Classificando e mapeando array do arquivo JSON..."):
                     questoes = parse_json_questoes(conteudo, tipo_prova)
                 
                 st.success(f"{len(questoes)} questões importadas com sucesso!")
                 st.session_state.questoes_detectadas = questoes
+            except ProvaSyncError as e:
+                # Erro nosso, já catalogado: exibe caixa amarela de aviso
+                st.warning(f"⚠️ Atenção: {str(e)}")
+                st.session_state.questoes_detectadas = None
             except Exception as e:
-                st.error(str(e))
+                # Erro do Python (bug real que não esperávamos)
+                st.error(f"Erro Inesperado de Sistema: {str(e)}")
                 st.session_state.questoes_detectadas = None
         else:
             st.warning("Por favor, selecione e faça upload de um arquivo ou cole um JSON válido na área acima primeiro.")
@@ -109,6 +115,8 @@ with tab_nova:
                     st.code(form_link, language="text")
                 except FileNotFoundError as e:
                     st.error(str(e))
+                except ProvaSyncError as e:
+                    st.warning(f"⚠️ Ação Recusada: {str(e)}")
                 except Exception as e:
                     st.error(f"Ocorreu um erro no servidor web Google API. Ocorreu o erro: {str(e)}")
 

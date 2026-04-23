@@ -1,64 +1,80 @@
 import json
 import html
+from typing import List, Dict, Optional
+from pydantic import BaseModel, Field, ValidationError, field_validator
+from src.exceptions import JSONInvalidoError
 
-def parse_json_questoes(conteudo_json, tipo_prova):
+class QuestaoInput(BaseModel):
     """
-    Recebe o conteúdo string/bytes de um arquivo JSON estruturado e o converte 
-    em uma lista de questões prontas para alimentar a tabela e ir pro Forms.
+    Molde rigoroso do Pydantic para validar a entrada de dados.
+    Ele converte os tipos, limita tamanhos e barra chaves inexistentes.
+    """
+    numero_do_ex: int = Field(alias="numero do ex")
+    materia: str = Field(default="", max_length=500)
+    submateria: str = Field(default="", max_length=500)
+    questoes: Optional[Dict[str, str]] = None
+
+    @field_validator("materia", "submateria")
+    @classmethod
+    def sanitize_html(cls, v: str) -> str:
+        # Neutraliza ataques XSS removendo scripts indesejados automaticamente
+        return html.escape(str(v))
+
+    @field_validator("questoes")
+    @classmethod
+    def sanitize_subitens(cls, v: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
+        if v:
+            return {k: html.escape(str(val).strip()[:500]) for k, val in v.items()}
+        return v
+
+def parse_json_questoes(conteudo_json: str, tipo_prova: str) -> List[dict]:
+    """
+    Recebe o conteúdo de um arquivo JSON e valida rigorosamente usando Pydantic
+    antes de convertê-lo em lista para o Google Forms.
     """
     try:
         dados = json.loads(conteudo_json)
     except json.JSONDecodeError:
-        raise ValueError("O arquivo JSON está com formato inválido. Verifique a estrutura e tente novamente.")
+        raise JSONInvalidoError("O arquivo JSON está com formato inválido. Verifique a estrutura e tente novamente.")
 
     if not dados:
-        raise ValueError("O arquivo JSON não contém questões.")
+        raise JSONInvalidoError("O arquivo JSON não contém questões.")
         
     if not isinstance(dados, list):
-        raise ValueError("O arquivo JSON está com formato inválido. A raiz deve ser uma lista de questões.")
+        raise JSONInvalidoError("O arquivo JSON está com formato inválido. A raiz deve ser uma lista de questões.")
 
     questoes_formatadas = []
-
-    # Trataremos as labels 'Objetiva'/'Discursiva' ignorando maiúscula/minúscula se precisar.
     tipo_prova_upper = tipo_prova.upper()
 
     for idx, item in enumerate(dados):
-        numero = item.get("numero do ex")
-        if numero is None:
-            raise ValueError(f"Campo 'numero do ex' ausente no item {idx + 1}.")
-
-        materia_raw = str(item.get("materia", ""))[:500]
-        materia = html.escape(materia_raw)
-        
-        submateria_raw = str(item.get("submateria", ""))[:500]
-        submateria_base = html.escape(submateria_raw)
+        try:
+            # Pydantic faz a mágica da validação aqui
+            questao_valida = QuestaoInput(**item)
+        except ValidationError as e:
+            # Simplifica o erro do Pydantic para a nossa interface final
+            erros = e.errors()
+            campo = erros[0].get("loc")[0] if erros[0].get("loc") else "desconhecido"
+            raise JSONInvalidoError(f"Erro de validação no item {idx + 1} (Campo '{campo}'): {erros[0].get('msg')}")
 
         if tipo_prova_upper == "OBJETIVA":
             questoes_formatadas.append({
-                "id": str(numero),
-                "materia": materia,
-                "submateria": submateria_base
+                "id": str(questao_valida.numero_do_ex),
+                "materia": questao_valida.materia,
+                "submateria": questao_valida.submateria
             })
             
         elif tipo_prova_upper == "DISCURSIVA":
-            if "questoes" not in item:
-                raise ValueError(f"Questão {numero} está sem subitens. Verifique o JSON.")
+            if not questao_valida.questoes:
+                raise JSONInvalidoError(f"Questão {questao_valida.numero_do_ex} está sem subitens. Verifique o JSON.")
                 
-            subitens = item.get("questoes")
-            if not isinstance(subitens, dict) or not subitens:
-                raise ValueError(f"A propriedade 'questoes' da questão {numero} não é um dicionário contendo subitens ou está vazia.")
-            
-            for chave, valor_subitem in subitens.items():
+            for chave, valor_subitem in questao_valida.questoes.items():
                 chave_min = str(chave).lower()
-                id_subitem = f"{numero}{chave_min}"
-                
-                submateria_raw = str(valor_subitem).strip()[:500]
-                submateria_especifica = html.escape(submateria_raw)
+                id_subitem = f"{questao_valida.numero_do_ex}{chave_min}"
                 
                 questoes_formatadas.append({
                     "id": id_subitem,
-                    "materia": materia,
-                    "submateria": submateria_especifica
+                    "materia": questao_valida.materia,
+                    "submateria": valor_subitem
                 })
 
     return questoes_formatadas
