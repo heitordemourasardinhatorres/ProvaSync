@@ -6,8 +6,8 @@ from forms_api import criar_form_google
 import historico
 
 st.set_page_config(page_title="ProvaSync", page_icon="📝", layout="wide")
-st.title("ProvaSync - Sincronizador de Provas em Pdf para Um formulario")
-st.write("Este aplicativo permite que você faça upload de um arquivo JSON com as questões da prova e gere um formulário no Google Forms com as questões mapeadas.")
+st.title("ProvaSync - Sincronizador de Provas (via JSON)")
+st.write("Este aplicativo permite que você faça upload de um arquivo JSON (ou cole o texto) com as questões da prova e gere um formulário no Google Forms com as questões mapeadas.")
 
 tab_nova, tab_historico = st.tabs(["Nova Prova", "Histórico"])
 

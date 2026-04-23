@@ -36,9 +36,9 @@ def get_credentials():
                     "Renomeie o 'credentials.example.json' fornecido, inclua as chaves do Google Cloud Console e tente de novo."
                 )
             
-            # Abre porta fixa localhost para bater com a URI do Google Cloud Console
+            # Abre uma porta dinâmica no localhost para receber a autorização do Google Cloud Console
             flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_PATH, SCOPES)
-            creds = flow.run_local_server(port=8080)
+            creds = flow.run_local_server(port=0)
             
         with open(TOKEN_PATH, 'w', encoding='utf-8') as token:
             token.write(creds.to_json())

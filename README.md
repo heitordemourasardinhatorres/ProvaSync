@@ -5,7 +5,9 @@ ProvaSync é um sistema web construído em **Python 3.10+** (utilizando **Stream
 ## Instalação e Execução
 
 ### 1. Clonando ou baixando esse sistema
-Navegue via terminal para este diretório raiz. O banco de dados histórico é salvo puramente em formato arquivo local ignorado no git (`historico.json`).
+Navegue via terminal para este diretório raiz. 
+
+> **⚠️ Atenção sobre o Histórico (Trabalho em Grupo):** O banco de dados de provas criadas (`historico.json`) é salvo de forma estritamente **local** na sua máquina e invisível ao versionamento. Portanto, as provas que você sincroniza não aparecerão para os seus colegas caso eles rodem o app nos computadores deles (e vice-versa). A sincronização local é individual!
 
 ### 2. Ambientes Virtuais (RECOMENDADO)
 No Windows, se for criar um ambiente local, utilize:
@@ -30,9 +32,9 @@ Para que o sistema ganhe poder de forçar novas abas e perguntas em seu drive:
 1. Vá ao Google Cloud Console;
 2. Crie ou use um projeto.
 3. Ative a "Google Forms API" e a "Google Drive API".
-4. Crie uma Credencial OAuth 2.0 Client ID (tipo "Desktop" ou "Web" com redirect http://localhost). 
-5. Faça o download dessa JSON key cruzada.
-6. Substitua o `credentials.example.json` por nome de arquivo contendo a sua verídica chaves transferidas e certifique-se dela relocar na raiz para que o python e o fluxo logue corretamente com porta zero.
+4. Crie uma Credencial OAuth 2.0 do tipo **"App para Computador" (Desktop)**. *(Observação: Se for criar do tipo Web, certifique-se de configurar e travar portas nas configurações, pois o app buscará dinamicamente).*
+5. Faça o download do arquivo JSON contendo as chaves geradas.
+6. Renomeie o arquivo baixado exatamente para `credentials.json` e coloque-o na mesma pasta raiz do projeto, ao lado do arquivo `app.py`. Apenas isso bastará para o Python ler sua chave com segurança.
 
 ### 5. Executando
 Para inicializar de vez pelo browser porta 8501:
