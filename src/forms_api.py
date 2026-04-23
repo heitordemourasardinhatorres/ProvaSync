@@ -11,7 +11,8 @@ SCOPES = [
 ]
 
 # Paths hardcoded garantindo proteção contra path traversal em imports ou execução de outro diretório
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# BASE_DIR sobe um nível pois forms_api está agora dentro de src/
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CREDENTIALS_PATH = os.path.join(BASE_DIR, 'credentials.json')
 TOKEN_PATH = os.path.join(BASE_DIR, 'token.json')
 

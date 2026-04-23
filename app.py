@@ -1,9 +1,9 @@
 import streamlit as st
 import os
 from datetime import datetime
-from extractor import parse_json_questoes
-from forms_api import criar_form_google
-import historico
+from src.extractor import parse_json_questoes
+from src.forms_api import criar_form_google
+import src.historico as historico
 
 st.set_page_config(page_title="ProvaSync", page_icon="📝", layout="wide")
 st.title("ProvaSync - Sincronizador de Provas (via JSON)")

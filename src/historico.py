@@ -2,13 +2,18 @@ import json
 import os
 from datetime import datetime
 
-HISTORICO_FILE = "historico.json"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(BASE_DIR, 'data')
+HISTORICO_FILE = os.path.join(DATA_DIR, 'historico.json')
 
 def carregar_historico():
     """
-    Carrega a lista de formulários previamente salvos no historico.json.
+    Carrega a lista de formulários previamente salvos no data/historico.json.
     Retorna uma lista de dicionários. Se o arquivo não existir ou for inválido, retorna lista vazia.
     """
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR, exist_ok=True)
+        
     if not os.path.exists(HISTORICO_FILE):
         return []
     
